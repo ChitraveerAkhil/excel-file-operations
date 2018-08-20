@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<form onChange="downloadDoc()">
+		Select a file: <input type="file" id="file"
+			accept=".csv, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"><br>
+		Keyword:<input type="text" id="columnHeading"><br> <input
+			type="submit" value="Submit">
+	</form>
+	<script>
+		function downloadDoc() {
+			var fileTab = document.getElementById("file");
+
+			if ('files' in fileTab) {
+				if (fileTab.files.length == 1) {
+					var file = fileTab.files[0];
+					var columnHeading = document
+							.getElementById("columnHeading");
+					console.log(columnHeading);
+					var formData = new FormData();
+					formData.append("columnHeading", columnHeading);
+					formData.append("file", file);
+					var xhr = new XMLHttpRequest();
+					xhr.onreadystatechange = function() {
+						if (this.readyState == 4 && this.status == 200) {
+							console.log(this.responseText);
+						}
+					};
+					xhr
+							.open("POST",
+									'http://localhost:8080/excel-duplicate-remover/rest/fileService/upload');
+					xhr.send(formData);
+				} else {
+					console.log("file not present");
+				}
+			}
+		}
+	</script>
+</body>
+</html>
