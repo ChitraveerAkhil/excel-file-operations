@@ -31,11 +31,16 @@ public class DuplicatesRemover {
 
 	// get the file and coloumn-heading, identifier or coloumn-header as parameters
 
-	public String removeDuplicates(String columnHeading, FileInputStream excelFile,
-			FormDataContentDisposition fileDetail)
-			throws EncryptedDocumentException, InvalidFormatException, IOException {
-		Workbook workbook = WorkbookFactory.create(excelFile);
-		Sheet datatypeSheet = workbook.getSheetAt(0);
+	public String removeDuplicates(String columnHeading, InputStream excelFile, FormDataContentDisposition fileDetail) {
+		Workbook workbook;
+		Sheet datatypeSheet = null;
+		try {
+			workbook = WorkbookFactory.create(excelFile);
+			datatypeSheet = workbook.getSheetAt(0);
+		} catch (EncryptedDocumentException | InvalidFormatException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		Iterator<Row> iterator = datatypeSheet.iterator();
 		Set<String> values = getValuesInTheColumn(columnHeading, iterator);
 		// Set<String> duplicatesRemoved = new LinkedHashSet<>(values);
@@ -47,11 +52,13 @@ public class DuplicatesRemover {
 
 	public Response retriveFile(String filePath) {
 		String[] array = filePath.split("/");
-		String fileName = array[array.length];
+		String fileName = array[array.length - 1];
 		String[] exactName = fileName.split("_");
+
 		File file = new File(filePath);
 		ResponseBuilder response = Response.ok((Object) file);
-		response.header("Content-Disposition", "attachment; filename=" + exactName[0] + "_duplicatesRemoved");
+		response.header("Content-Disposition",
+				"attachment; filename=duplicatesRemoved_" + exactName[exactName.length - 1]);
 		return response.build();
 	}
 
@@ -76,7 +83,7 @@ public class DuplicatesRemover {
 
 	}
 
-	private String createOutputStream(Set<String> values, String fileName) throws FileNotFoundException, IOException {
+	private String createOutputStream(Set<String> values, String fileName) {
 		HSSFWorkbook workbuk = new HSSFWorkbook();
 		HSSFSheet dataSheet = workbuk.createSheet("duplicateRemoved");
 		int rowCount = 0;
@@ -88,16 +95,21 @@ public class DuplicatesRemover {
 			cell.setCellValue(iterator.next());
 
 		}
-		String filePath = "/home/akhil/";
+		String filePath = "./";
 		Date date = new Date();
-		filePath += fileName;
-		filePath += "_" + date;
+		filePath += date.getTime() + "_" + fileName;
 		File duplicateRemoved = new File(filePath);
-		FileOutputStream outputStream = new FileOutputStream(duplicateRemoved);
-		// FileOutputStream outputStream = new FileOutputStream(new
-		// File("/home/e0000081/sample1.xls"));
-		workbuk.write(outputStream);
-		workbuk.close();
+		FileOutputStream outputStream;
+		try {
+			outputStream = new FileOutputStream(duplicateRemoved);
+			// FileOutputStream outputStream = new FileOutputStream(new
+			// File("/home/e0000081/sample1.xls"));
+			workbuk.write(outputStream);
+			workbuk.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 		return filePath;
 	}
 
@@ -138,20 +150,31 @@ public class DuplicatesRemover {
 		}
 		return columnIdx;
 	}
-	/*
-	 * public static void main(String[] args) throws FileNotFoundException { //
-	 * String FILE_NAME = "/home/e0000081/Downloads/firefox/SampleXLSFile_38kb.xls";
-	 * String FILE_NAME = "/home/akhil/Downloads/Sample-Spreadsheet-100-rows.xls";
-	 * FileInputStream excelFile; DuplicatesRemover remover = new
-	 * DuplicatesRemover(); try { excelFile = new FileInputStream(new
-	 * File(FILE_NAME)); remover.removeDuplicates("Grant Carroll", excelFile);
-	 * 
-	 * } catch (EncryptedDocumentException | InvalidFormatException | IOException e)
-	 * { // TODO Auto-generated catch block e.printStackTrace(); }
-	 * 
-	 * }
-	 */
 
+	public static void main(String[] args) throws FileNotFoundException { //
+		String fileName = "/home/akhil/Downloads/Sample-Spreadsheet-100-rows.xls";
+		FileInputStream excelFile;
+		DuplicatesRemover remover = new DuplicatesRemover();
+		try {
+			excelFile = new FileInputStream(new File(fileName));
+			remover.removeDuplicates("Grant Carroll", excelFile, "Sample-Spreadsheet-100-rows.xls");
+
+		} catch (EncryptedDocumentException | InvalidFormatException | IOException e) {
+		}
+	}
+
+	public String removeDuplicates(String columnHeading, FileInputStream excelFile, String fileName)
+			throws EncryptedDocumentException, InvalidFormatException, IOException {
+		Workbook workbook = WorkbookFactory.create(excelFile);
+		Sheet datatypeSheet = workbook.getSheetAt(0);
+		Iterator<Row> iterator = datatypeSheet.iterator();
+		Set<String> values = getValuesInTheColumn(columnHeading, iterator);
+		// Set<String> duplicatesRemoved = new LinkedHashSet<>(values);
+		// removeDuplicate(values);
+		String filePath = createOutputStream(values, fileName);
+		System.out.println(filePath);
+		return filePath;
+	}
 }
 
 // String FILE_NAME = "/home/akhil/Downloads/Sample-Spreadsheet-100-rows.xls";
