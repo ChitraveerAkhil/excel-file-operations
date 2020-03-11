@@ -1,12 +1,13 @@
-package org.dummy.fileOperation;
+package com.chitraveerakhil.fileOperation;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -29,18 +30,16 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 public class DuplicatesRemover {
 
-	// get the file and coloumn-heading, identifier or coloumn-header as parameters
+	// get the file and coloumn-heading, identifier or coloumn-header as
+	// parameters
 
-	public String removeDuplicates(String columnHeading, InputStream excelFile, FormDataContentDisposition fileDetail) {
+	public String removeDuplicates(String columnHeading, InputStream excelFile, FormDataContentDisposition fileDetail,
+			String sheetLocation) throws IOException, EncryptedDocumentException, InvalidFormatException {
 		Workbook workbook;
 		Sheet datatypeSheet = null;
-		try {
-			workbook = WorkbookFactory.create(excelFile);
-			datatypeSheet = workbook.getSheetAt(0);
-		} catch (EncryptedDocumentException | InvalidFormatException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		workbook = WorkbookFactory.create(excelFile);
+		datatypeSheet = workbook.getSheetAt(Integer.parseInt(sheetLocation));
+		// TODO Auto-generated catch block
 		Iterator<Row> iterator = datatypeSheet.iterator();
 		Set<String> values = getValuesInTheColumn(columnHeading, iterator);
 		// Set<String> duplicatesRemoved = new LinkedHashSet<>(values);
@@ -62,28 +61,7 @@ public class DuplicatesRemover {
 		return response.build();
 	}
 
-	// save uploaded file to new location
-	void writeToFile(InputStream uploadedInputStream, String uploadedFileLocation) {
-
-		try {
-			OutputStream out = new FileOutputStream(new File(uploadedFileLocation));
-			int read = 0;
-			byte[] bytes = new byte[1024];
-
-			out = new FileOutputStream(new File(uploadedFileLocation));
-			while ((read = uploadedInputStream.read(bytes)) != -1) {
-				out.write(bytes, 0, read);
-			}
-			out.flush();
-			out.close();
-		} catch (IOException e) {
-
-			e.printStackTrace();
-		}
-
-	}
-
-	private String createOutputStream(Set<String> values, String fileName) {
+	private String createOutputStream(Set<String> values, String fileName) throws IOException {
 		HSSFWorkbook workbuk = new HSSFWorkbook();
 		HSSFSheet dataSheet = workbuk.createSheet("duplicateRemoved");
 		int rowCount = 0;
@@ -95,21 +73,25 @@ public class DuplicatesRemover {
 			cell.setCellValue(iterator.next());
 
 		}
-		String filePath = "./";
+		String filePath = "./target/generated/excel/";
 		Date date = new Date();
 		filePath += date.getTime() + "_" + fileName;
-		File duplicateRemoved = new File(filePath);
-		FileOutputStream outputStream;
+
+		FileOutputStream outputStream = null;
 		try {
-			outputStream = new FileOutputStream(duplicateRemoved);
-			// FileOutputStream outputStream = new FileOutputStream(new
-			// File("/home/e0000081/sample1.xls"));
+			outputStream = new FileOutputStream(new File(filePath));
+
+		} catch (FileNotFoundException e) {
+			Path path = Paths.get(filePath);
+			Files.createDirectories(path.getParent());
+
+			Path file = Files.createFile(path);
+			outputStream = new FileOutputStream(file.toString());
+		} finally {
 			workbuk.write(outputStream);
 			workbuk.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+			outputStream.close();
 		}
-
 		return filePath;
 	}
 
@@ -151,32 +133,4 @@ public class DuplicatesRemover {
 		return columnIdx;
 	}
 
-	public static void main(String[] args) throws FileNotFoundException { //
-		String fileName = "/home/akhil/Downloads/Sample-Spreadsheet-100-rows.xls";
-		FileInputStream excelFile;
-		DuplicatesRemover remover = new DuplicatesRemover();
-		try {
-			excelFile = new FileInputStream(new File(fileName));
-			remover.removeDuplicates("Grant Carroll", excelFile, "Sample-Spreadsheet-100-rows.xls");
-
-		} catch (EncryptedDocumentException | InvalidFormatException | IOException e) {
-		}
-	}
-
-	public String removeDuplicates(String columnHeading, FileInputStream excelFile, String fileName)
-			throws EncryptedDocumentException, InvalidFormatException, IOException {
-		Workbook workbook = WorkbookFactory.create(excelFile);
-		Sheet datatypeSheet = workbook.getSheetAt(0);
-		Iterator<Row> iterator = datatypeSheet.iterator();
-		Set<String> values = getValuesInTheColumn(columnHeading, iterator);
-		// Set<String> duplicatesRemoved = new LinkedHashSet<>(values);
-		// removeDuplicate(values);
-		String filePath = createOutputStream(values, fileName);
-		System.out.println(filePath);
-		return filePath;
-	}
 }
-
-// String FILE_NAME = "/home/akhil/Downloads/Sample-Spreadsheet-100-rows.xls";
-// FileOutputStream outputStream = new FileOutputStream(new
-// File("/home/akhil/sample1.xls"));
